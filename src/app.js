@@ -65,7 +65,6 @@ img.onload = function () {
     console.log(km.clusters);
 
 
-
     let pointClusters = [];
     d.map(function(p, i){
         let min = Number.MAX_SAFE_INTEGER;
@@ -80,7 +79,20 @@ img.onload = function () {
         pointClusters[minIndex] ? pointClusters[minIndex].push(p) : pointClusters[minIndex] = [p];
     })
 
+    pointClusters.map(function(cs,i){
+        var r,g,b;
+        cs.map(function(c, ci){
+            r += c[0];
+            g += c[1];
+            b += c[2];
+        })
+        r /= cs.length;
+        g /= cs.length;
+        b /= cs.length;
+        km.centroids[i] = [r,g,b];
+    })
 
+/*
 
     var newCentroids = [];
 
@@ -109,7 +121,7 @@ img.onload = function () {
         newCentroids.push(subkm.centroids[largestIndex]);
     }
     newCentroids.map(function(nc, i){ km.centroids[i] = nc;});
-
+*/
     imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     data = imageData.data;
     data = blur(data,imageData.width, imageData.height, 50);
