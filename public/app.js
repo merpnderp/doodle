@@ -63,7 +63,6 @@
 
 	img.onload = function () {
 	    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-	    //Edit
 	    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 	    var data = imageData.data;
 	    for (var i = 0; i < data.length; i += 4) {
@@ -90,7 +89,7 @@
 	    ctx3.putImageData(imageData, 0, 0);
 
 	    var km = new kMeans({
-	        K: 3
+	        K: 4
 	    });
 	    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 	    data = imageData.data;
@@ -107,50 +106,63 @@
 	    console.log(km.centroids);
 	    console.log(km.clusters);
 
-	    var pointClusters = [];
-	    d.map(function (p, i) {
-	        var min = Number.MAX_SAFE_INTEGER;
-	        var minIndex = -1;
-	        km.centroids.map(function (c, ci) {
-	            var dist = findDistance(p, c);
-	            if (dist < min) {
-	                min = dist;
-	                minIndex = ci;
-	            }
-	        });
-	        pointClusters[minIndex] ? pointClusters[minIndex].push(p) : pointClusters[minIndex] = [p];
-	    });
-
-	    var newCentroids = [];
-
-	    for (var i = 0; i < pointClusters.length; i++) {
-	        var subkm = new kMeans({
-	            K: 5
-	        });
-	        subkm.cluster(pointClusters[i]);
-	        while (subkm.step()) {
-	            subkm.findClosestCentroids();
-	            subkm.moveCentroids();
-	            if (subkm.hasConverged()) break;
-	        }
-	        console.log('Finished in:', subkm.currentIteration, ' iterations');
-	        console.log(subkm.centroids);
-	        console.log(subkm.clusters);
-	        //Now find largest cluster
-	        var largest = 0;
-	        var largestIndex = -1;
-	        for (var o = 0; o < subkm.clusters.length; o++) {
-	            if (subkm.clusters[o].length > largest) {
-	                largest = subkm.clusters[o].length;
-	                largestIndex = o;
-	            }
-	        }
-	        newCentroids.push(subkm.centroids[largestIndex]);
-	    }
-	    newCentroids.map(function (nc, i) {
-	        km.centroids[i] = nc;
-	    });
-
+	    /*
+	        let pointClusters = [];
+	        d.map(function (p, i) {
+	            let min = Number.MAX_SAFE_INTEGER;
+	            let minIndex = -1;
+	            km.centroids.map(function (c, ci) {
+	                let dist = findDistance(p, c);
+	                if (dist < min) {
+	                    min = dist;
+	                    minIndex = ci;
+	                }
+	            })
+	            pointClusters[minIndex] ? pointClusters[minIndex].push(p) : pointClusters[minIndex] = [p];
+	        })
+	    
+	        pointClusters.map(function (cs, i) {
+	            var r = 0, g = 0, b = 0;
+	            cs.map(function (c, ci) {
+	                r += c[0];
+	                g += c[1];
+	                b += c[2];
+	            })
+	            r /= cs.length;
+	            g /= cs.length;
+	            b /= cs.length;
+	            km.centroids[i] = [r, g, b];
+	            console.log(km.centroids[i]);
+	        })
+	    */
+	    /*
+	      var newCentroids = [];
+	      for(var i = 0; i < pointClusters.length; i++){
+	     var subkm = new kMeans({
+	     K:5
+	     });
+	     subkm.cluster(pointClusters[i]);
+	     while(subkm.step()){
+	     subkm.findClosestCentroids();
+	     subkm.moveCentroids();
+	     if(subkm.hasConverged()) break;
+	     }
+	     console.log('Finished in:', subkm.currentIteration, ' iterations');
+	     console.log(subkm.centroids);
+	     console.log(subkm.clusters);
+	     //Now find largest cluster
+	     var largest = 0;
+	     var largestIndex = -1;
+	     for(var o = 0; o < subkm.clusters.length; o++){
+	     if(subkm.clusters[o].length > largest){
+	     largest = subkm.clusters[o].length;
+	     largestIndex = o;
+	     }
+	     }
+	     newCentroids.push(subkm.centroids[largestIndex]);
+	     }
+	     newCentroids.map(function(nc, i){ km.centroids[i] = nc;});
+	     */
 	    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 	    data = imageData.data;
 	    data = blur(data, imageData.width, imageData.height, 50);
@@ -167,12 +179,13 @@
 	                closestIndex = o;
 	            }
 	        }
-	        data[_i] = km.centroids[closestIndex][1];
-	        data[_i + 1] = km.centroids[closestIndex][2];
-	        data[_i + 2] = km.centroids[closestIndex][3];
+	        data[_i] = km.centroids[closestIndex][0];
+	        data[_i + 1] = km.centroids[closestIndex][1];
+	        data[_i + 2] = km.centroids[closestIndex][2];
+	        //        data[i+3] = 255;
 	    }
 	    //Take into account his is RGBA and fix it-----------------------------
-	    //    data = new Uint8ClampedArray(blur(data, imageData.width, imageData.height, 2));
+	    data = new Uint8ClampedArray(blur(data, imageData.width, imageData.height, 2));
 	    data = new Uint8ClampedArray(data);
 	    var canvas4 = document.getElementById('canvas4');
 	    var ctx4 = canvas4.getContext('2d');
@@ -204,8 +217,9 @@
 	}
 
 	//img.src = '/images/rhino.jpg';
-	img.src = '/images/starynight.jpg';
-	//img.src = '/images/Monet.jpg';
+	//img.src = '/images/starynight.jpg';
+	img.src = '/images/Monet.jpg';
+	//img.src = '/images/rainbow.jpg';
 
 /***/ },
 /* 1 */
