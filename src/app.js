@@ -1,8 +1,7 @@
 var React = require('react');
 var ReactDOM = require('react-dom');
 var kMeans = require('kmeans-js');
-var ndarray = require('ndarray');
-var gaussianFilter = require('ndarray-gaussian-filter');
+const blur = require('./tracking').blur;
 
 ReactDOM.render(
     <h1>Hello, world!</h1>,
@@ -42,16 +41,18 @@ img.onload = function () {
     var ctx3 = canvas3.getContext('2d');
     ctx3.putImageData(imageData, 0, 0);
 
+
+
+
+
+
     var km = new kMeans({
-        K: 3
+        K:3
     });
     imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     data = imageData.data;
-    let d = [], m = 0;
-    for (var i = 0; i < data.length; i += 4) {
-        d[m++] = [data[i], data[i + 1], data[i + 2]];
-    }
-    console.log(d);
+    let d = [];
+    d = RGBAToTrinary(data);
     km.cluster(d);
     while (km.step()) {
         km.findClosestCentroids();
@@ -62,13 +63,58 @@ img.onload = function () {
     console.log('Finished in:', km.currentIteration, ' iterations');
     console.log(km.centroids);
     console.log(km.clusters);
-//    for(var i = 0; i < km.clusters.length; i++){
-//       km.centroids[i] = findTopColor(km.clusters[i]);
-//    }
+
+
+
+    let pointClusters = [];
+    d.map(function(p, i){
+        let min = Number.MAX_SAFE_INTEGER;
+        let minIndex = -1;
+        km.centroids.map(function(c,ci){
+            let dist = findDistance(p, c);
+            if(dist < min){
+                min = dist;
+                minIndex = ci;
+            }
+        })
+        pointClusters[minIndex] ? pointClusters[minIndex].push(p) : pointClusters[minIndex] = [p];
+    })
+
+
+
+    var newCentroids = [];
+
+    for(var i = 0; i < pointClusters.length; i++){
+        var subkm = new kMeans({
+            K:5
+        });
+        subkm.cluster(pointClusters[i]);
+        while(subkm.step()){
+            subkm.findClosestCentroids();
+            subkm.moveCentroids();
+            if(subkm.hasConverged()) break;
+        }
+        console.log('Finished in:', subkm.currentIteration, ' iterations');
+        console.log(subkm.centroids);
+        console.log(subkm.clusters);
+        //Now find largest cluster
+        var largest = 0;
+        var largestIndex = -1;
+        for(var o = 0; o < subkm.clusters.length; o++){
+            if(subkm.clusters[o].length > largest){
+                largest = subkm.clusters[o].length;
+                largestIndex = o;
+            }
+        }
+        newCentroids.push(subkm.centroids[largestIndex]);
+    }
+    newCentroids.map(function(nc, i){ km.centroids[i] = nc;});
+
     imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     data = imageData.data;
-    for (var i = 0; i < data.length; i += 4) {
-        var closest = 10^100000;
+    data = blur(data,imageData.width, imageData.height, 50);
+    for (let i = 0; i < data.length; i += 4) {
+        var closest = Number.MAX_SAFE_INTEGER;
         var closestIndex = 0;
         for (var o = 0; o < km.centroids.length; o++) {
             var x = data[i] - km.centroids[o][0];
@@ -85,21 +131,37 @@ img.onload = function () {
         data[i + 2] = km.centroids[closestIndex][3];
     }
 //Take into account his is RGBA and fix it-----------------------------
-    var nd = ndarray(data, [imageData.width * 4, imageData.height]);
-    console.log("image data");
-    console.log(imageData.width * imageData.height);
-    console.log(imageData.data.length);
-    var filteredData = gaussianFilter(nd, 5);
-    console.log(filteredData);
-
+//    data = new Uint8ClampedArray(blur(data, imageData.width, imageData.height, 2));
+    data = new Uint8ClampedArray(data);
     var canvas4 = document.getElementById('canvas4');
     var ctx4 = canvas4.getContext('2d');
-
-    ctx4.putImageData(new ImageData(filteredData.data, imageData.width, imageData.height), 0,0);
+    ctx4.putImageData(new ImageData(data, imageData.width, imageData.height), 0,0);
 //    ctx4.putImageData(imageData, 0,0);
 
 
 };
+function findDistance(A,B){
+    var x = A[0] - B[0];
+    var y = A[1] - B[1];
+    var z = A[2] - B[2];
+    return (x * x + y * y + z * z ) ^ .5;
+}
+
+function RGBAToTrinary(data){
+    var d = [], m = 0;
+    for (let i = 0; i < data.length; i += 4) {
+        d[m++] = [data[i], data[i + 1], data[i + 2]];
+    }
+    return d;
+}
+function RGBToTrinary(data){
+    var d = [], m = 0;
+    for (let i = 0; i < data.length; i += 3) {
+        d[m++] = [data[i], data[i + 1], data[i + 2]];
+    }
+    return d;
+}
 
 //img.src = '/images/rhino.jpg';
 img.src = '/images/starynight.jpg';
+//img.src = '/images/Monet.jpg';

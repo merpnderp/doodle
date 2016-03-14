@@ -7,7 +7,6 @@
     "bootstrap": "^3.3.6",
     "express": "^4.13.4",
     "kmeans-js": "^0.1.2",
-    "ndarray": "^1.0.18",
     "react": "^0.14.7",
     "react-addons-update": "^0.14.7",
     "react-bootstrap": "^0.28.3",
@@ -16,7 +15,8 @@
     "react-widgets": "^3.2.0",
     "redux": "^3.3.1",
     "redux-thunk": "^1.0.3",
-    "synaptic": "^1.0.2"
+    "synaptic": "^1.0.2",
+    "tracking": "^1.1.2"
   },
   "devDependencies": {
     "babel-core": "^6.5.2",
