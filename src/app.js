@@ -12,6 +12,8 @@ var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
 var img = new Image();
 
+var kValue = 4;
+var blurValue = 4;
 
 img.onload = function () {
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -42,7 +44,7 @@ img.onload = function () {
 
 
     var km = new kMeans({
-        K:4
+        K:kValue
     });
     imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     data = imageData.data;
@@ -120,27 +122,17 @@ img.onload = function () {
      */
     imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     data = imageData.data;
-    data = blur(data, imageData.width, imageData.height, 50);
-    for (let i = 0; i < data.length; i += 4) {
-        var closest = Number.MAX_SAFE_INTEGER;
-        var closestIndex = 0;
-        for (var o = 0; o < km.centroids.length; o++) {
-            var x = data[i] - km.centroids[o][0];
-            var y = data[i + 1] - km.centroids[o][1];
-            var z = data[i + 2] - km.centroids[o][2];
-            var dist = (x * x + y * y + z * z ) ^ .5;
-            if (dist < closest) {
-                closest = dist;
-                closestIndex = o;
-            }
-        }
-        data[i] = km.centroids[closestIndex][0];
-        data[i + 1] = km.centroids[closestIndex][1];
-        data[i + 2] = km.centroids[closestIndex][2];
-//        data[i+3] = 255;
-    }
+//    data = blur(data, imageData.width, imageData.height, blurValue);
+    data = applyCentroids(data, km.centroids);
+    data = blur(data, imageData.width, imageData.height, blurValue);
+    data = applyCentroids(data, km.centroids);
+    data = blur(data, imageData.width, imageData.height, blurValue*2);
+    data = applyCentroids(data, km.centroids);
+    data = blur(data, imageData.width, imageData.height, blurValue*10);
+    data = applyCentroids(data, km.centroids);
+
 //Take into account his is RGBA and fix it-----------------------------
-    data = new Uint8ClampedArray(blur(data, imageData.width, imageData.height, 2));
+//    data = new Uint8ClampedArray(blur(data, imageData.width, imageData.height, 2));
     data = new Uint8ClampedArray(data);
     var canvas4 = document.getElementById('canvas4');
     var ctx4 = canvas4.getContext('2d');
@@ -149,6 +141,26 @@ img.onload = function () {
 
 
 };
+
+function applyCentroids(data, centroids){
+    for (let i = 0; i < data.length; i += 4) {
+        let closest = Number.MAX_SAFE_INTEGER;
+        let closestIndex = 0;
+        for (let o = 0; o < centroids.length; o++) {
+            let dist = findDistance([data[i], data[i+1], data[i+2]], [centroids[o][0], centroids[o][1], centroids[o][2]]);
+            if (dist < closest) {
+                closest = dist;
+                closestIndex = o;
+            }
+        }
+        data[i] = centroids[closestIndex][0];
+        data[i + 1] = centroids[closestIndex][1];
+        data[i + 2] = centroids[closestIndex][2];
+//        data[i+3] = 255;
+    }
+    return data;
+
+}
 function findDistance(A, B) {
     var x = A[0] - B[0];
     var y = A[1] - B[1];
@@ -210,6 +222,8 @@ function rgb2hsv (r,g,b) {
 }
 
 //img.src = '/images/rhino.jpg';
-img.src = '/images/starynight.jpg';
+//img.src = '/images/starynight.jpg';
+//img.src = '/images/bedroom.jpg';
+img.src = '/images/olive.jpg';
 //img.src = '/images/Monet.jpg';
 //img.src = '/images/rainbow.jpg';

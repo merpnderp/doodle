@@ -61,6 +61,9 @@
 	var ctx = canvas.getContext('2d');
 	var img = new Image();
 
+	var kValue = 4;
+	var blurValue = 4;
+
 	img.onload = function () {
 	    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 	    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -89,7 +92,7 @@
 	    ctx3.putImageData(imageData, 0, 0);
 
 	    var km = new kMeans({
-	        K: 4
+	        K: kValue
 	    });
 	    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 	    data = imageData.data;
@@ -165,33 +168,42 @@
 	     */
 	    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 	    data = imageData.data;
-	    data = blur(data, imageData.width, imageData.height, 50);
-	    for (var _i = 0; _i < data.length; _i += 4) {
-	        var closest = Number.MAX_SAFE_INTEGER;
-	        var closestIndex = 0;
-	        for (var o = 0; o < km.centroids.length; o++) {
-	            var x = data[_i] - km.centroids[o][0];
-	            var y = data[_i + 1] - km.centroids[o][1];
-	            var z = data[_i + 2] - km.centroids[o][2];
-	            var dist = x * x + y * y + z * z ^ .5;
-	            if (dist < closest) {
-	                closest = dist;
-	                closestIndex = o;
-	            }
-	        }
-	        data[_i] = km.centroids[closestIndex][0];
-	        data[_i + 1] = km.centroids[closestIndex][1];
-	        data[_i + 2] = km.centroids[closestIndex][2];
-	        //        data[i+3] = 255;
-	    }
+	    //    data = blur(data, imageData.width, imageData.height, blurValue);
+	    data = applyCentroids(data, km.centroids);
+	    data = blur(data, imageData.width, imageData.height, blurValue);
+	    data = applyCentroids(data, km.centroids);
+	    data = blur(data, imageData.width, imageData.height, blurValue * 2);
+	    data = applyCentroids(data, km.centroids);
+	    data = blur(data, imageData.width, imageData.height, blurValue * 10);
+	    data = applyCentroids(data, km.centroids);
+
 	    //Take into account his is RGBA and fix it-----------------------------
-	    data = new Uint8ClampedArray(blur(data, imageData.width, imageData.height, 2));
+	    //    data = new Uint8ClampedArray(blur(data, imageData.width, imageData.height, 2));
 	    data = new Uint8ClampedArray(data);
 	    var canvas4 = document.getElementById('canvas4');
 	    var ctx4 = canvas4.getContext('2d');
 	    ctx4.putImageData(new ImageData(data, imageData.width, imageData.height), 0, 0);
 	    //    ctx4.putImageData(imageData, 0,0);
 	};
+
+	function applyCentroids(data, centroids) {
+	    for (var i = 0; i < data.length; i += 4) {
+	        var closest = Number.MAX_SAFE_INTEGER;
+	        var closestIndex = 0;
+	        for (var o = 0; o < centroids.length; o++) {
+	            var dist = findDistance([data[i], data[i + 1], data[i + 2]], [centroids[o][0], centroids[o][1], centroids[o][2]]);
+	            if (dist < closest) {
+	                closest = dist;
+	                closestIndex = o;
+	            }
+	        }
+	        data[i] = centroids[closestIndex][0];
+	        data[i + 1] = centroids[closestIndex][1];
+	        data[i + 2] = centroids[closestIndex][2];
+	        //        data[i+3] = 255;
+	    }
+	    return data;
+	}
 	function findDistance(A, B) {
 	    var x = A[0] - B[0];
 	    var y = A[1] - B[1];
@@ -216,9 +228,48 @@
 	    return d;
 	}
 
+	function rgb2hsv(r, g, b) {
+	    var computedH = 0;
+	    var computedS = 0;
+	    var computedV = 0;
+
+	    //remove spaces from input RGB values, convert to int
+	    var r = parseInt(('' + r).replace(/\s/g, ''), 10);
+	    var g = parseInt(('' + g).replace(/\s/g, ''), 10);
+	    var b = parseInt(('' + b).replace(/\s/g, ''), 10);
+
+	    if (r == null || g == null || b == null || isNaN(r) || isNaN(g) || isNaN(b)) {
+	        alert('Please enter numeric RGB values!');
+	        return;
+	    }
+	    if (r < 0 || g < 0 || b < 0 || r > 255 || g > 255 || b > 255) {
+	        alert('RGB values must be in the range 0 to 255.');
+	        return;
+	    }
+	    r = r / 255;g = g / 255;b = b / 255;
+	    var minRGB = Math.min(r, Math.min(g, b));
+	    var maxRGB = Math.max(r, Math.max(g, b));
+
+	    // Black-gray-white
+	    if (minRGB == maxRGB) {
+	        computedV = minRGB;
+	        return [0, 0, computedV];
+	    }
+
+	    // Colors other than black-gray-white:
+	    var d = r == minRGB ? g - b : b == minRGB ? r - g : b - r;
+	    var h = r == minRGB ? 3 : b == minRGB ? 1 : 5;
+	    computedH = 60 * (h - d / (maxRGB - minRGB));
+	    computedS = (maxRGB - minRGB) / maxRGB;
+	    computedV = maxRGB;
+	    return [computedH, computedS, computedV];
+	}
+
 	//img.src = '/images/rhino.jpg';
 	//img.src = '/images/starynight.jpg';
-	img.src = '/images/Monet.jpg';
+	//img.src = '/images/bedroom.jpg';
+	img.src = '/images/olive.jpg';
+	//img.src = '/images/Monet.jpg';
 	//img.src = '/images/rainbow.jpg';
 
 /***/ },
