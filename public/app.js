@@ -48,8 +48,15 @@
 
 	var React = __webpack_require__(1);
 	var ReactDOM = __webpack_require__(158);
-	var kMeans = __webpack_require__(159);
 	var blur = __webpack_require__(161).blur;
+	var start = window.performance.now();
+	var RGBAToTrinary = __webpack_require__(164);
+	var applyCentroids = __webpack_require__(165);
+	var groupPixelsToCentroids = __webpack_require__(170);
+	var findAveragePixel = __webpack_require__(171);
+	var rgbToHSV = __webpack_require__(167);
+	var greyscale = __webpack_require__(168);
+	var kmCluster = __webpack_require__(169);
 
 	ReactDOM.render(React.createElement(
 	    'h1',
@@ -61,214 +68,75 @@
 	var ctx = canvas.getContext('2d');
 	var img = new Image();
 
-	var kValue = 4;
-	var blurValue = 4;
+	var kmValue = 4;
+	var blurValue = 50;
 
 	img.onload = function () {
+	    //Draw original image
+	    //--------------
 	    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-	    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-	    var data = imageData.data;
-	    for (var i = 0; i < data.length; i += 4) {
-	        data[i] += 80;
-	        data[i + 1] += 80;
-	        data[i + 2] += 80;
-	    }
-	    var canvas2 = document.getElementById('canvas2');
-	    var ctx2 = canvas2.getContext('2d');
-	    ctx2.putImageData(imageData, 0, 0);
+	    var imageData = void 0;
+	    var data = void 0;
+	    //--------------
+
 	    //Greyscale
+	    //---------------
 	    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-	    data = imageData.data;
-	    for (var i = 0; i < data.length; i += 4) {
-	        //let brightness = 0.34 * data[i] + 0.5 * data[i + 1] + 0.16 * data[i + 2];
-	        //HDTV def for greyscale
-	        var brightness = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
-	        data[i] = brightness;
-	        data[i + 1] = brightness;
-	        data[i + 2] = brightness;
-	    }
+	    data = greyscale(imageData.data);
 	    var canvas3 = document.getElementById('canvas3');
 	    var ctx3 = canvas3.getContext('2d');
 	    ctx3.putImageData(imageData, 0, 0);
+	    //---------------
 
-	    var km = new kMeans({
-	        K: kValue
-	    });
 	    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 	    data = imageData.data;
-	    var d = [];
-	    d = RGBAToTrinary(data);
-	    km.cluster(d);
-	    while (km.step()) {
-	        km.findClosestCentroids();
-	        km.moveCentroids();
 
-	        if (km.hasConverged()) break;
+	    // - get centroids.
+	    // - assign every pixel to a centroid.
+	    // - find average for cluster, creating a new centroid.
+	    // - assign all pixels to new centroid.
+	    // - repeat until no pixels move.
+	    //---------------
+	    var centroids = kmCluster(kmValue, RGBAToTrinary(data));
+	    var changed = true;
+	    var groups = groupPixelsToCentroids(centroids, data); //in trinary format
+	    while (changed) {
+	        groups.map(function (g, i) {
+	            centroids[i] = findAveragePixel(g);
+	        });
+	        var tGroup = groupPixelsToCentroids(centroids, data);
+	        var newGroups = tGroup.slice(0, tGroup.length);
+	        //See if groups have changed
+	        changed = false;
+	        newGroups.map(function (ng, i) {
+	            console.log(ng.length + " : " + groups[i].length);
+	            if (ng.length != groups[i].length) {
+	                changed = true;
+	            }
+	        });
+	        groups = newGroups.slice(0, newGroups.length);
 	    }
-	    console.log('Finished in:', km.currentIteration, ' iterations');
-	    console.log(km.centroids);
-	    console.log(km.clusters);
+	    console.log(groups);
+	    //---------------
 
-	    /*
-	        let pointClusters = [];
-	        d.map(function (p, i) {
-	            let min = Number.MAX_SAFE_INTEGER;
-	            let minIndex = -1;
-	            km.centroids.map(function (c, ci) {
-	                let dist = findDistance(p, c);
-	                if (dist < min) {
-	                    min = dist;
-	                    minIndex = ci;
-	                }
-	            })
-	            pointClusters[minIndex] ? pointClusters[minIndex].push(p) : pointClusters[minIndex] = [p];
-	        })
-	    
-	        pointClusters.map(function (cs, i) {
-	            var r = 0, g = 0, b = 0;
-	            cs.map(function (c, ci) {
-	                r += c[0];
-	                g += c[1];
-	                b += c[2];
-	            })
-	            r /= cs.length;
-	            g /= cs.length;
-	            b /= cs.length;
-	            km.centroids[i] = [r, g, b];
-	            console.log(km.centroids[i]);
-	        })
-	    */
-	    /*
-	      var newCentroids = [];
-	      for(var i = 0; i < pointClusters.length; i++){
-	     var subkm = new kMeans({
-	     K:5
-	     });
-	     subkm.cluster(pointClusters[i]);
-	     while(subkm.step()){
-	     subkm.findClosestCentroids();
-	     subkm.moveCentroids();
-	     if(subkm.hasConverged()) break;
-	     }
-	     console.log('Finished in:', subkm.currentIteration, ' iterations');
-	     console.log(subkm.centroids);
-	     console.log(subkm.clusters);
-	     //Now find largest cluster
-	     var largest = 0;
-	     var largestIndex = -1;
-	     for(var o = 0; o < subkm.clusters.length; o++){
-	     if(subkm.clusters[o].length > largest){
-	     largest = subkm.clusters[o].length;
-	     largestIndex = o;
-	     }
-	     }
-	     newCentroids.push(subkm.centroids[largestIndex]);
-	     }
-	     newCentroids.map(function(nc, i){ km.centroids[i] = nc;});
-	     */
 	    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 	    data = imageData.data;
-	    //    data = blur(data, imageData.width, imageData.height, blurValue);
-	    data = applyCentroids(data, km.centroids);
 	    data = blur(data, imageData.width, imageData.height, blurValue);
-	    data = applyCentroids(data, km.centroids);
-	    data = blur(data, imageData.width, imageData.height, blurValue * 2);
-	    data = applyCentroids(data, km.centroids);
-	    data = blur(data, imageData.width, imageData.height, blurValue * 10);
-	    data = applyCentroids(data, km.centroids);
+	    data = applyCentroids(data, centroids);
 
 	    //Take into account his is RGBA and fix it-----------------------------
-	    //    data = new Uint8ClampedArray(blur(data, imageData.width, imageData.height, 2));
 	    data = new Uint8ClampedArray(data);
 	    var canvas4 = document.getElementById('canvas4');
 	    var ctx4 = canvas4.getContext('2d');
 	    ctx4.putImageData(new ImageData(data, imageData.width, imageData.height), 0, 0);
-	    //    ctx4.putImageData(imageData, 0,0);
+
+	    console.log("Finished in: " + (window.performance.now() - start) / 1000);
 	};
 
-	function applyCentroids(data, centroids) {
-	    for (var i = 0; i < data.length; i += 4) {
-	        var closest = Number.MAX_SAFE_INTEGER;
-	        var closestIndex = 0;
-	        for (var o = 0; o < centroids.length; o++) {
-	            var dist = findDistance([data[i], data[i + 1], data[i + 2]], [centroids[o][0], centroids[o][1], centroids[o][2]]);
-	            if (dist < closest) {
-	                closest = dist;
-	                closestIndex = o;
-	            }
-	        }
-	        data[i] = centroids[closestIndex][0];
-	        data[i + 1] = centroids[closestIndex][1];
-	        data[i + 2] = centroids[closestIndex][2];
-	        //        data[i+3] = 255;
-	    }
-	    return data;
-	}
-	function findDistance(A, B) {
-	    var x = A[0] - B[0];
-	    var y = A[1] - B[1];
-	    var z = A[2] - B[2];
-	    return x * x + y * y + z * z ^ .5;
-	}
-
-	function RGBAToTrinary(data) {
-	    var d = [],
-	        m = 0;
-	    for (var i = 0; i < data.length; i += 4) {
-	        d[m++] = [data[i], data[i + 1], data[i + 2]];
-	    }
-	    return d;
-	}
-	function RGBToTrinary(data) {
-	    var d = [],
-	        m = 0;
-	    for (var i = 0; i < data.length; i += 3) {
-	        d[m++] = [data[i], data[i + 1], data[i + 2]];
-	    }
-	    return d;
-	}
-
-	function rgb2hsv(r, g, b) {
-	    var computedH = 0;
-	    var computedS = 0;
-	    var computedV = 0;
-
-	    //remove spaces from input RGB values, convert to int
-	    var r = parseInt(('' + r).replace(/\s/g, ''), 10);
-	    var g = parseInt(('' + g).replace(/\s/g, ''), 10);
-	    var b = parseInt(('' + b).replace(/\s/g, ''), 10);
-
-	    if (r == null || g == null || b == null || isNaN(r) || isNaN(g) || isNaN(b)) {
-	        alert('Please enter numeric RGB values!');
-	        return;
-	    }
-	    if (r < 0 || g < 0 || b < 0 || r > 255 || g > 255 || b > 255) {
-	        alert('RGB values must be in the range 0 to 255.');
-	        return;
-	    }
-	    r = r / 255;g = g / 255;b = b / 255;
-	    var minRGB = Math.min(r, Math.min(g, b));
-	    var maxRGB = Math.max(r, Math.max(g, b));
-
-	    // Black-gray-white
-	    if (minRGB == maxRGB) {
-	        computedV = minRGB;
-	        return [0, 0, computedV];
-	    }
-
-	    // Colors other than black-gray-white:
-	    var d = r == minRGB ? g - b : b == minRGB ? r - g : b - r;
-	    var h = r == minRGB ? 3 : b == minRGB ? 1 : 5;
-	    computedH = 60 * (h - d / (maxRGB - minRGB));
-	    computedS = (maxRGB - minRGB) / maxRGB;
-	    computedV = maxRGB;
-	    return [computedH, computedS, computedV];
-	}
-
 	//img.src = '/images/rhino.jpg';
-	//img.src = '/images/starynight.jpg';
+	img.src = '/images/starynight.jpg';
 	//img.src = '/images/bedroom.jpg';
-	img.src = '/images/olive.jpg';
+	//img.src = '/images/olive.jpg';
 	//img.src = '/images/Monet.jpg';
 	//img.src = '/images/rainbow.jpg';
 
@@ -20204,6 +20072,224 @@
 	var separableConvolve = function separableConvolve(pixels, width, height, horizWeights, vertWeights, opaque) {
 	    var vertical = verticalConvolve(pixels, width, height, vertWeights, opaque);
 	    return horizontalConvolve(vertical, width, height, horizWeights, opaque);
+	};
+
+/***/ },
+/* 162 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	module.exports = function (A, B) {
+	    var x = A[0] - B[0];
+	    var y = A[1] - B[1];
+	    var z = A[2] - B[2];
+	    return x * x + y * y + z * z ^ .5;
+	};
+
+/***/ },
+/* 163 */,
+/* 164 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	module.exports = function (data) {
+	    var d = [],
+	        m = 0;
+	    for (var i = 0; i < data.length; i += 4) {
+	        d[m++] = [data[i], data[i + 1], data[i + 2]];
+	    }
+	    return d;
+	};
+
+/***/ },
+/* 165 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var findDistance = __webpack_require__(162);
+
+	module.exports = function (data, centroids) {
+	    for (var i = 0; i < data.length; i += 4) {
+	        var closest = Number.MAX_SAFE_INTEGER;
+	        var closestIndex = 0;
+	        for (var o = 0; o < centroids.length; o++) {
+	            var dist = findDistance([data[i], data[i + 1], data[i + 2]], [centroids[o][0], centroids[o][1], centroids[o][2]]);
+	            if (dist < closest) {
+	                closest = dist;
+	                closestIndex = o;
+	            }
+	        }
+	        data[i] = centroids[closestIndex][0];
+	        data[i + 1] = centroids[closestIndex][1];
+	        data[i + 2] = centroids[closestIndex][2];
+	        //        data[i+3] = 255;
+	    }
+	    return data;
+	};
+
+/***/ },
+/* 166 */,
+/* 167 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	var computedH = 0;
+	var computedS = 0;
+	var computedV = 0;
+	var minRGB = 0;
+	var maxRGB = 0;
+	var d = 0;
+	var h = 0;
+	var r = void 0,
+	    g = void 0,
+	    b = void 0;
+
+	module.exports = function (r, g, b) {
+	    computedH = 0;
+	    computedS = 0;
+	    computedV = 0;
+
+	    //remove spaces from input RGB values, convert to int
+	    r = parseInt(('' + r).replace(/\s/g, ''), 10);
+	    g = parseInt(('' + g).replace(/\s/g, ''), 10);
+	    b = parseInt(('' + b).replace(/\s/g, ''), 10);
+
+	    if (r == null || g == null || b == null || isNaN(r) || isNaN(g) || isNaN(b)) {
+	        alert('Please enter numeric RGB values!');
+	        return;
+	    }
+	    if (r < 0 || g < 0 || b < 0 || r > 255 || g > 255 || b > 255) {
+	        alert('RGB values must be in the range 0 to 255.');
+	        return;
+	    }
+	    r = r / 255;
+	    g = g / 255;
+	    b = b / 255;
+	    minRGB = Math.min(r, Math.min(g, b));
+	    maxRGB = Math.max(r, Math.max(g, b));
+
+	    // Black-gray-white
+	    if (minRGB == maxRGB) {
+	        computedV = minRGB;
+	        return [0, 0, computedV];
+	    }
+
+	    // Colors other than black-gray-white:
+	    d = r == minRGB ? g - b : b == minRGB ? r - g : b - r;
+	    h = r == minRGB ? 3 : b == minRGB ? 1 : 5;
+	    computedH = 60 * (h - d / (maxRGB - minRGB));
+	    computedS = (maxRGB - minRGB) / maxRGB;
+	    computedV = maxRGB;
+	    return [computedH, computedS, computedV];
+	};
+
+/***/ },
+/* 168 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	var i = void 0,
+	    brightness = void 0;
+	module.exports = function (data) {
+	    for (i = 0; i < data.length; i += 4) {
+	        //let brightness = 0.34 * data[i] + 0.5 * data[i + 1] + 0.16 * data[i + 2];
+	        //HDTV def for greyscale
+	        brightness = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+	        data[i] = brightness;
+	        data[i + 1] = brightness;
+	        data[i + 2] = brightness;
+	    }
+	    return data;
+	};
+
+/***/ },
+/* 169 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var kMeans = __webpack_require__(159);
+
+	var km = void 0;
+
+	module.exports = function (kValue, trinaryData) {
+	    km = new kMeans({
+	        K: kValue
+	    });
+	    km.cluster(trinaryData);
+	    while (km.step()) {
+	        km.findClosestCentroids();
+	        km.moveCentroids();
+
+	        if (km.hasConverged()) break;
+	    }
+	    return km.centroids;
+	};
+
+/***/ },
+/* 170 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var findDistance = __webpack_require__(162);
+	var dist = void 0,
+	    o = void 0,
+	    i = void 0,
+	    closest = void 0,
+	    closestIndex = void 0;
+
+	module.exports = function (centroids, data) {
+	    var groups = [];
+
+	    for (i = 0; i < centroids.length; i++) {
+	        groups[i] = [];
+	    }
+
+	    for (i = 0; i < data.length; i += 4) {
+	        closest = Number.MAX_SAFE_INTEGER;
+	        closestIndex = 0;
+	        for (o = 0; o < centroids.length; o++) {
+	            dist = findDistance([data[i], data[i + 1], data[i + 2]], [centroids[o][0], centroids[o][1], centroids[o][2]]);
+	            if (dist < closest) {
+	                closest = dist;
+	                closestIndex = o;
+	            }
+	        }
+	        groups[closestIndex].push([data[i], data[i + 1], data[i + 2], data[i + 3]]);
+	        //        data[i] = centroids[closestIndex][0];
+	        //        data[i + 1] = centroids[closestIndex][1];
+	        //        data[i + 2] = centroids[closestIndex][2];
+	        //        data[i+3] = 255;
+	    }
+	    return groups;
+	};
+
+/***/ },
+/* 171 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	var r = void 0,
+	    g = void 0,
+	    b = void 0;
+	module.exports = function (data) {
+	    r = 0;g = 0;b = 0;
+	    data.map(function (d) {
+	        r += d[0];
+	        g += d[1];
+	        b += d[2];
+	    });
+	    r /= data.length;
+	    g /= data.length;
+	    b /= data.length;
+	    return [r, g, b];
 	};
 
 /***/ }
