@@ -13,6 +13,7 @@ module.exports = function(kValue, trinaryData){
 
         if (km.hasConverged()) break;
     }
+    console.log('KMeans finished in:', km.currentIteration, ' iterations');
     return km.centroids;
 }
 

@@ -11,7 +11,7 @@ const greyscale = require('./utils/rgbaToGreyscale');
 const kmCluster = require('./utils/kmCluster');
 
 ReactDOM.render(
-    <h1>Hello, world!</h1>,
+    <h1>Doodle Mania!</h1>,
     document.getElementById('main')
 );
 
@@ -19,8 +19,8 @@ const canvas = document.getElementById('canvas');
 let ctx = canvas.getContext('2d');
 let img = new Image();
 
-const kmValue = 4;
-const blurValue = 50;
+const kmValue = 12;
+const blurValue = 25;
 
 img.onload = function () {
     //Draw original image
@@ -51,6 +51,7 @@ img.onload = function () {
     let centroids = kmCluster(kmValue, RGBAToTrinary(data));
     let changed = true;
     let groups = groupPixelsToCentroids(centroids, data);//in trinary format
+    let loops = 0;
     while (changed) {
         groups.map(function (g, i) {
             centroids[i] = findAveragePixel(g);
@@ -60,14 +61,14 @@ img.onload = function () {
         //See if groups have changed
         changed = false;
         newGroups.map(function (ng, i) {
-            console.log(ng.length + " : " + groups[i].length);
             if (ng.length != groups[i].length) {
                 changed = true;
             }
         })
         groups = newGroups.slice(0, newGroups.length);
+        loops++;
     }
-    console.log(groups);
+    console.log("Had to iterate centroids: " + loops + " times.");
     //---------------
 
     imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -86,8 +87,8 @@ img.onload = function () {
 
 
 //img.src = '/images/rhino.jpg';
-img.src = '/images/starynight.jpg';
+//img.src = '/images/starynight.jpg';
 //img.src = '/images/bedroom.jpg';
 //img.src = '/images/olive.jpg';
-//img.src = '/images/Monet.jpg';
+img.src = '/images/Monet.jpg';
 //img.src = '/images/rainbow.jpg';

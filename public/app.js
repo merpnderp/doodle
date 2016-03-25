@@ -61,15 +61,15 @@
 	ReactDOM.render(React.createElement(
 	    'h1',
 	    null,
-	    'Hello, world!'
+	    'Doodle Mania!'
 	), document.getElementById('main'));
 
 	var canvas = document.getElementById('canvas');
 	var ctx = canvas.getContext('2d');
 	var img = new Image();
 
-	var kmValue = 4;
-	var blurValue = 50;
+	var kmValue = 12;
+	var blurValue = 25;
 
 	img.onload = function () {
 	    //Draw original image
@@ -100,6 +100,7 @@
 	    var centroids = kmCluster(kmValue, RGBAToTrinary(data));
 	    var changed = true;
 	    var groups = groupPixelsToCentroids(centroids, data); //in trinary format
+	    var loops = 0;
 	    while (changed) {
 	        groups.map(function (g, i) {
 	            centroids[i] = findAveragePixel(g);
@@ -109,14 +110,14 @@
 	        //See if groups have changed
 	        changed = false;
 	        newGroups.map(function (ng, i) {
-	            console.log(ng.length + " : " + groups[i].length);
 	            if (ng.length != groups[i].length) {
 	                changed = true;
 	            }
 	        });
 	        groups = newGroups.slice(0, newGroups.length);
+	        loops++;
 	    }
-	    console.log(groups);
+	    console.log("Had to iterate centroids: " + loops + " times.");
 	    //---------------
 
 	    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -134,10 +135,10 @@
 	};
 
 	//img.src = '/images/rhino.jpg';
-	img.src = '/images/starynight.jpg';
+	//img.src = '/images/starynight.jpg';
 	//img.src = '/images/bedroom.jpg';
 	//img.src = '/images/olive.jpg';
-	//img.src = '/images/Monet.jpg';
+	img.src = '/images/Monet.jpg';
 	//img.src = '/images/rainbow.jpg';
 
 /***/ },
@@ -20228,6 +20229,7 @@
 
 	        if (km.hasConverged()) break;
 	    }
+	    console.log('KMeans finished in:', km.currentIteration, ' iterations');
 	    return km.centroids;
 	};
 
