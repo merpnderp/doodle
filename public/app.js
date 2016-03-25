@@ -110,7 +110,8 @@
 	        //See if groups have changed
 	        changed = false;
 	        newGroups.map(function (ng, i) {
-	            if (ng.length != groups[i].length) {
+	            if (ng.length > groups[i].length * 1.005 || ng.length < groups[i].length * .995) {
+	                //            if (ng.length != groups[i].length) {
 	                changed = true;
 	            }
 	        });
@@ -136,9 +137,9 @@
 
 	//img.src = '/images/rhino.jpg';
 	//img.src = '/images/starynight.jpg';
-	//img.src = '/images/bedroom.jpg';
+	img.src = '/images/bedroom.jpg';
 	//img.src = '/images/olive.jpg';
-	img.src = '/images/Monet.jpg';
+	//img.src = '/images/Monet.jpg';
 	//img.src = '/images/rainbow.jpg';
 
 /***/ },
@@ -20240,7 +20241,8 @@
 	'use strict';
 
 	var findDistance = __webpack_require__(162);
-	var dist = void 0,
+	var colorDist = void 0,
+	    dist = void 0,
 	    o = void 0,
 	    i = void 0,
 	    closest = void 0,
@@ -20257,17 +20259,15 @@
 	        closest = Number.MAX_SAFE_INTEGER;
 	        closestIndex = 0;
 	        for (o = 0; o < centroids.length; o++) {
+	            //colorDist = findDistance([data[i], data[i + 1], data[i + 2]], [centroids[o][0], centroids[o][1], centroids[o][2]]);
 	            dist = findDistance([data[i], data[i + 1], data[i + 2]], [centroids[o][0], centroids[o][1], centroids[o][2]]);
+
 	            if (dist < closest) {
 	                closest = dist;
 	                closestIndex = o;
 	            }
 	        }
 	        groups[closestIndex].push([data[i], data[i + 1], data[i + 2], data[i + 3]]);
-	        //        data[i] = centroids[closestIndex][0];
-	        //        data[i + 1] = centroids[closestIndex][1];
-	        //        data[i + 2] = centroids[closestIndex][2];
-	        //        data[i+3] = 255;
 	    }
 	    return groups;
 	};

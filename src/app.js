@@ -61,7 +61,8 @@ img.onload = function () {
         //See if groups have changed
         changed = false;
         newGroups.map(function (ng, i) {
-            if (ng.length != groups[i].length) {
+            if (ng.length > groups[i].length * 1.005 || ng.length < groups[i].length * .995) {
+//            if (ng.length != groups[i].length) {
                 changed = true;
             }
         })
@@ -88,7 +89,7 @@ img.onload = function () {
 
 //img.src = '/images/rhino.jpg';
 //img.src = '/images/starynight.jpg';
-//img.src = '/images/bedroom.jpg';
+img.src = '/images/bedroom.jpg';
 //img.src = '/images/olive.jpg';
-img.src = '/images/Monet.jpg';
+//img.src = '/images/Monet.jpg';
 //img.src = '/images/rainbow.jpg';
