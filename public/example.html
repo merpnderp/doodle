@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <title> </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://unpkg.com/tachyons/css/tachyons.min.css">
+  <body>
+	<input id="input" type='file' multiple />	
+	<script>
+		console.log('hi')
+		var input = document.querySelector('input')
+		input.addEventListener('change', filesAdded)//	input.addEventListener('change', updateImageDisplay);	
+		console.log('hi')
+		function filesAdded(files){
+			console.log("wtf")
+			var fileList = input.files;
+			console.log(input)
+			for(i=0;i<fileList.length;i++){
+				console.log(fileList[i])
+			}
+		}
+	</script>
+  </body>
+</html>
+
+
